@@ -1,0 +1,17 @@
+version: 1
+services:
+  - type: web
+    name: card-checker-bot
+    env: python
+    plan: free
+    buildCommand: |
+      pip install -r requirements.txt
+    startCommand: |
+      python your_bot_script.py
+    envVars:
+      - key: BOT_TOKEN
+        value: your_bot_token
+      - key: STORAGE_BOT_TOKEN
+        value: your_storage_bot_token
+      - key: STORAGE_CHAT_ID
+        value: your_storage_chat_id
